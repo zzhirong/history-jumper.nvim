@@ -1,6 +1,6 @@
 # History Jumper for Neovim
 
-History Jumper is a plugin for Neovim that allows you to quickly jump to previously opened files using just three keystrokes. It is a great productivity tool for developers who work with multiple files simultaneously.
+History Jumper is a plugin for Neovim that allows you to quickly jump to previously opened files using just three keystrokes(If there are multiple matches, filter them using fzf.nvim). It is a great productivity tool for developers who work with multiple files simultaneously.
 
 ## Installation
 
