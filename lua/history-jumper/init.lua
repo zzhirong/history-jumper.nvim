@@ -3,6 +3,12 @@ local api = vim.api
 
 local M = {}
 
+local function fallback(k)
+    local args = vim.fn['fzf#vim#with_preview']()
+    args.options[#args.options+1] = "--query=" .. k
+    vim.fn['fzf#vim#history'](args)
+end
+
 local function get_history_files()
     local history_files = {}
     -- local history_dir = fn.expand("~/.local/share/nvim/history/")
@@ -41,7 +47,7 @@ local function history_jump()
     local k = char1 .. char2
     local history_files = get_history_files()
     if not history_files[k] then
-        print("No history starts with" .. k)
+        fallback(k)
         return
     end
     local files = vim.tbl_keys(history_files[k])
