@@ -13,8 +13,8 @@ return {
         'junegunn/fzf.vim'
     },
     config = function()
-        require'history-jumper.nvim'.setup({
-            default_mappings = true,
+        require'history-jumper'.setup({
+            prefix = 'S',
         })
     end
 }
@@ -24,18 +24,7 @@ Make sure to also have [fzf.vim](https://github.com/junegunn/fzf.vim) installed.
 
 ## Custom Key Mapping
 
-You can customize the key mapping for History Jumper by setting the `prefix` option in the configuration. Here's an example:
-
-```lua
-return {
-    'zzhirong/history-jumper.nvim',
-    config = function()
-        require'history-jumper.nvim'.setup({
-            prefix = 'S',
-        })
-    end
-}
-```
+You can customize the key mapping for History Jumper by setting the `prefix` option in the configuration.
 
 ## Usage
 
