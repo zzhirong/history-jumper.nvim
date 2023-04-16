@@ -31,8 +31,8 @@ To jump to a previously opened file, input three keystrokes: `prefix` + `the fir
 For example, to jump to `history-jumper/lua/init.lua`:
 
 1. The first key is `prefix`, which was assigned in the configuration (default is `S`).
-2. The last path portion is `lua`, so the second letter is `l`.
-3. The file name is `init.lua`, the first letter of the file name, which is `i`:
+2. The last path portion is `lua`, so the second letter is `l`. Once you press the second letter, a floating window will appear with a list of candidates for selection. You can press `<Esc>` to abort the selection.
+3. The file name is `init.lua`, the first letter of the file name, which is `i`, 
     1. If there is only one left with filename starts with `i`, then the third letter is `i`.
     2. If there are multiple files with names starting with `i`, this plugin will assign a number index next to the first one, so the third key may be a number.
 
