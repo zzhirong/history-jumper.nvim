@@ -3,30 +3,96 @@ local api = vim.api
 
 local M = {}
 
-local function fallback(k)
-    local args = vim.fn['fzf#vim#with_preview']()
-    args.options[#args.options+1] = "--query=" .. k
-    vim.fn['fzf#vim#history'](args)
+local function file_exists(path)
+  local stat = vim.loop.fs_stat(path)
+  return stat and stat.type == 'file'
+end
+
+local function create_win(width, height)
+    -- get the size of the current window
+    local cur_win_width = vim.api.nvim_win_get_width(0)
+    local cur_win_height = vim.api.nvim_win_get_height(0)
+
+    -- calculate the row and column to place the window in the center
+    local row = math.floor((cur_win_height - height) / 2)
+    local col = math.floor((cur_win_width - width) / 2)
+
+    local buf = vim.api.nvim_create_buf(false, true)
+    local opts = {
+        style = 'minimal',
+        relative = 'editor',
+        width = width,
+        height = height,
+        row = row,
+        col = col,
+    }
+    local win = vim.api.nvim_open_win(buf, true, opts)
+
+    return win, buf
+end
+
+-- Open a popup floating windows to select from a table of history files.
+local function pselect(lines)
+    local maxlen = 0
+    for _, line in ipairs(lines) do
+        if #line > maxlen then
+            maxlen = #line
+        end
+    end
+
+    local win, buf = create_win(maxlen, #lines)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+
+    local nu_idx = 0
+    local map = {}
+    local ns_id = vim.api.nvim_create_namespace("history-jumper")
+    for n, line in ipairs(lines) do
+        local filename = vim.fn.fnamemodify(line, ':t')
+        local c2 = string.sub(filename, 1, 1)
+        if map[c2] then
+            nu_idx = nu_idx + 1
+            c2 = tostring(nu_idx)
+        end
+        map[c2] = line
+        local col = string.find(line, filename, 1, true)
+        vim.api.nvim_buf_set_extmark(buf, ns_id, n-1, col-2, {
+            virt_text = { { c2, "ErrorMsg" } },
+            virt_text_pos = 'overlay',
+            hl_mode = 'blend',
+        })
+    end
+    vim.api.nvim_command('redraw')
+    local code = 0
+    local c2
+    for _ = 1, 5 do
+        code = vim.fn.getchar()
+        c2 = vim.fn.nr2char(code)
+        if map[c2] or (code == 27) then
+            break
+        end
+    end
+    vim.api.nvim_win_close(win, true)
+    return map[c2]
 end
 
 local function get_history_files()
     local history_files = {}
-    -- local history_dir = fn.expand("~/.local/share/nvim/history/")
-    -- local files = fn.globpath(history_dir, "*", false, true)
     local files = vim.v.oldfiles
     for _, file in ipairs(files) do
         local parts = vim.split(file, "/")
-        local first_letter = string.sub(parts[#parts-1], 1, 1)
-        local second_letter = string.sub(parts[#parts], 1, 1)
-        local k = first_letter .. second_letter
-        if not history_files[k] then
-            history_files[k] = {}
+        local c1 = string.sub(parts[#parts-1], 1, 1)
+        if not history_files[c1] then
+            history_files[c1] = {}
         end
-        history_files[k][file] = true
+
+        local c2 = string.sub(parts[#parts], 1, 1)
+        if not history_files[c1][c2] then
+            history_files[c1][c2] = {}
+        end
+        table.insert(history_files[c1][c2], file)
     end
     return history_files
 end
-
 
 local function open_history_file(file)
     api.nvim_command("edit " .. file)
@@ -37,29 +103,26 @@ local function history_jump()
     if not ok then
         return
     end
-
-    local ok2, code2 = pcall(vim.fn.getchar)
-    if not ok2 then
-        return
-    end
-    local char1 = vim.fn.nr2char(code1)
-    local char2 = vim.fn.nr2char(code2)
-    local k = char1 .. char2
+    local c1 = vim.fn.nr2char(code1)
     local history_files = get_history_files()
-    if not history_files[k] then
-        fallback(k)
+    if not history_files[c1] then
+        print("No path starts with " .. c1)
         return
     end
-    local files = vim.tbl_keys(history_files[k])
-    if files and (#files == 1) then
-        open_history_file(files[1])
-    else
-        vim.fn['fzf#run'](
-        {
-            source = files,
-            sink = 'e',
-        }
-        )
+
+    local result = {}
+    for _, v1 in pairs(history_files[c1]) do
+        for _, file in ipairs(v1) do
+            local fn = vim.fn.fnamemodify(file, ":t")
+            if file_exists(file) then
+                table.insert(result, file)
+            end
+        end
+    end
+    local file = pselect(result)
+
+    if file then
+        open_history_file(file)
     end
 end
 
