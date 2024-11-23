@@ -11,7 +11,8 @@ return {
     'zzhirong/history-jumper.nvim',
     config = function()
         require'history-jumper'.setup({
-            prefix = 'S',
+            prefix = '|',  -- Like a door to oldfiles
+            change_dir = true, -- Will change to the dir of the file; if there is a git repository, then it will change the directory to the directory containing the .git
         })
     end
 }

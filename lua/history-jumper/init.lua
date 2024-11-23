@@ -1,7 +1,12 @@
 local vim = vim
 local api = vim.api
 
-local M = {}
+local M = {
+    opts = {
+        prefix = "|",
+        change_dir = true,
+    }
+}
 
 local function file_exists(path)
   local stat = vim.loop.fs_stat(path)
@@ -75,21 +80,17 @@ local function pselect(lines)
     return map[c2]
 end
 
-local function get_history_files()
+local function filter_oldfiles_by_parent_dir_first_letter(first)
     local history_files = {}
     local files = vim.v.oldfiles
     for _, file in ipairs(files) do
         local parts = vim.split(file, "/")
         local c1 = string.sub(parts[#parts-1], 1, 1)
-        if not history_files[c1] then
-            history_files[c1] = {}
+        if c1 == first then
+            if file_exists(file) then
+                table.insert(history_files, file)
+            end
         end
-
-        local c2 = string.sub(parts[#parts], 1, 1)
-        if not history_files[c1][c2] then
-            history_files[c1][c2] = {}
-        end
-        table.insert(history_files[c1][c2], file)
     end
     return history_files
 end
@@ -104,31 +105,34 @@ local function history_jump()
         return
     end
     local c1 = vim.fn.nr2char(code1)
-    local history_files = get_history_files()
-    if not history_files[c1] then
+    local oldfiles = filter_oldfiles_by_parent_dir_first_letter(c1)
+    if #oldfiles == 0 then
         print("No path starts with " .. c1)
         return
     end
 
-    local result = {}
-    for _, v1 in pairs(history_files[c1]) do
-        for _, file in ipairs(v1) do
-            local fn = vim.fn.fnamemodify(file, ":t")
-            if file_exists(file) then
-                table.insert(result, file)
-            end
-        end
-    end
-    local file = pselect(result)
+    local file = pselect(oldfiles)
 
     if file then
         open_history_file(file)
+        if M.opts.change_dir then
+            local dir = vim.fn.fnamemodify(file, ':h')
+            api.nvim_command("cd " .. dir)
+            -- check if the directory is in a git repo and cd to it if so
+            local git_dir = vim.fn.finddir('.git', dir .. ';')
+            if git_dir ~= '' then
+                -- cd to the parent directory of the .git directory
+                api.nvim_command("cd " .. vim.fn.fnamemodify(git_dir, ':h'))
+            end
+        end
     end
 end
 
 function M.setup(opts)
-    local key = (opts and opts.prefix) or 'S'
-    vim.keymap.set('n', key, history_jump, {})
+    if opts then
+        M.opts = vim.tbl_extend("force", M.opts, opts)
+    end
+    vim.keymap.set('n', M.opts.prefix, history_jump, {})
 end
 
 return M
