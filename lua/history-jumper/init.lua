@@ -84,13 +84,24 @@ local function filter_oldfiles_by_parent_dir_first_letter(first)
     local history_files = {}
     local files = vim.v.oldfiles
     for _, file in ipairs(files) do
-        local parts = vim.split(file, "/")
-        local c1 = string.sub(parts[#parts-1], 1, 1)
-        if c1 == first then
-            if file_exists(file) then
-                table.insert(history_files, file)
-            end
+        if not file_exists(file) then
+            goto continue
         end
+
+        local parts = vim.split(file, "/")
+        if parts == nil or #parts == 0 then
+            -- get absoulte path
+            file = vim.fn.fnamemodify(file, ':p')
+            parts = vim.split(file, "/")
+        end
+        if parts == nil or #parts == 0 then
+            goto continue
+        end
+        local c1 = string.sub(parts[#parts - 1], 1, 1)
+        if c1 == first then
+            table.insert(history_files, file)
+        end
+        ::continue::
     end
     return history_files
 end
