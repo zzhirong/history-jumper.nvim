@@ -107,7 +107,11 @@ local function filter_oldfiles_by_parent_dir_first_letter(first)
 end
 
 local function open_history_file(file)
-    api.nvim_command("edit " .. file)
+    if vim.g.vscode then
+        vim.fn.VSCodeExtensionNotify('open-file', file)
+    else
+        api.nvim_command("edit " .. file)
+    end
 end
 
 local function history_jump()
